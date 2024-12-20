@@ -8,15 +8,17 @@ class Player {
         this.goalkeeping = goalkeeping;
         this.iq = iq;
         this.physical = physical;
+        this.goals = 0;
     }
 }
 
 class Team {
-    constructor (name, players, onField) {
+    constructor (name, players, onField, goalie) {
         this.name = name;
         this.players = players;
         this.onField = onField;
-        this.score = score;
+        this.goalie = goalie;
+        this.score = 0;
     }
 }
 
@@ -31,6 +33,7 @@ class GameState {
         this.time = -1;
         this.possession = -1;
 
+        this.playType = "full strength";
         this.isRunning = false;
     }
 
@@ -40,13 +43,67 @@ class GameState {
             this.quarter = 1;
             this.time = 0;
 
-            this.faceoffHandler();
+            setTeams();
+            faceoffHandler();
         }
         // Not sure if we'll need an 'else' here...
     }
 
     updateGame (event) {
+        // Take 'event', find how much time came off the clock for
+        //   the event (based on class at bottom), take that much
+        //   time off the clock, then direct to proper function
+    }
+    
+    substitutionHandler () {
+        // Automatically put in best goalie for each team
+        goalie1 = team1.players.filter((player) => player.position === "goalie");
+        goalie1.sort((a, b) => parseFloat(b.goalkeeping) - parseFloat(a.goalkeeping));
+        team1.goalie = goalie1[0];
+        goalie2 = team2.players.filter((player) => player.position === "goalie");
+        goalie2.sort((a, b) => parseFloat(b.goalkeeping) - parseFloat(a.goalkeeping));
+        team2.goalie = goalie2[0];
+        // Put correct players on the field depending on possession
+        // -1: Faceoff. Base personnel on field
+        // 0: Team 1 has the ball. Offense/Defense personnel
+        // 1: Team 2 has the ball. Offense/Defense personnel
+        if (this.possession === -1) {
+            team1.players.sort((a, b) => parseFloat(b.attack) - parseFloat(a.attack));
+            team1.onField += [team1.players[0], team1.players[1], team1.players[2], team1.players[3], team1.players[4]];
+            faceoffs = team1.players.filter((player) => player.position === "faceoff");
+            faceoffs.sort((a, b) => parseFloat(b.faceoff) - parseFloat(a.faceoff));
+            team1.players += faceoffs[0];
+            team1.players.sort((a, b) => parseFloat(b.defense) - parseFloat(a.defense));
+            team1.onField += [team1.players[0], team1.players[1], team1.players[2]];
 
+            team2.players.sort((a, b) => parseFloat(b.attack) - parseFloat(a.attack));
+            team2.onField += [team2.players[0], team2.players[1], team2.players[2], team2.players[3], team2.players[4]];
+            faceoffs = team2.players.filter((player) => player.position === "faceoff");
+            faceoffs.sort((a, b) => parseFloat(b.faceoff) - parseFloat(a.faceoff));
+            team2.players += faceoffs[0];
+            team2.players.sort((a, b) => parseFloat(b.defense) - parseFloat(a.defense));
+            team2.onField += [team2.players[0], team2.players[1], team2.players[2]];
+        } else if (this.possession === 0) {
+            team1.players.sort((a, b) => parseFloat(b.attack) - parseFloat(a.attack));
+            team1.onField += [team1.players[0], team1.players[1], team1.players[2], team1.players[3], team1.players[4], team1.players[5]];
+            team1.players.sort((a, b) => parseFloat(b.defense) - parseFloat(a.defense));
+            team1.onField += [team1.players[0], team1.players[1], team1.players[2]];
+
+            team2.players.sort((a, b) => parseFloat(b.attack) - parseFloat(a.attack));
+            team2.onField += [team2.players[0], team2.players[1], team2.players[2]];
+            team2.players.sort((a, b) => parseFloat(b.defense) - parseFloat(a.defense));
+            team2.onField += [team2.players[0], team2.players[1], team2.players[2], team2.players[3], team2.players[4]];           
+        } else if (this.possession === 1) {
+            team1.players.sort((a, b) => parseFloat(b.attack) - parseFloat(a.attack));
+            team1.onField += [team1.players[0], team1.players[1], team1.players[2]];
+            team1.players.sort((a, b) => parseFloat(b.defense) - parseFloat(a.defense));
+            team1.onField += [team1.players[0], team1.players[1], team1.players[2], team1.players[3], team1.players[4]]; 
+
+            team2.players.sort((a, b) => parseFloat(b.attack) - parseFloat(a.attack));
+            team2.onField += [team2.players[0], team2.players[1], team2.players[2], team2.players[3], team2.players[4], team2.players[5]];
+            team2.players.sort((a, b) => parseFloat(b.defense) - parseFloat(a.defense));
+            team2.onField += [team2.players[0], team2.players[1], team2.players[2]];
+        }
     }
 
     faceoffHandler () {
@@ -70,11 +127,29 @@ class GameState {
         }
     }
 
+    groundBallHandler () {
+
+    }
+
     penaltyHandler () {
         // Check if there's a penalty
         let penaltyChance = Math.random();
         if (penaltyChance >= 0.75) {
-            
+            // If there is a penalty, who is it on?
+            let players = team1.onField;
+            players += team2.onField;
+
+            let random = Math.floor(Math.random() * players.length);
+
+            let toBox = players[random - 1];
+            if (team1.onField.filter((player) => player == toBox)) {
+                // Remove player from field
+                
+            } else if (team2.onField.filter((player) => player == toBox)) {
+
+            } else {
+                throw new Error;
+            }
         } else {
             turnoverHandler();
         }
